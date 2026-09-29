@@ -1,0 +1,1064 @@
+{
+  "datasets": [
+    {
+      "name": "alertas_criticas",
+      "displayName": "Alertas Críticas de Producción",
+      "queryLines": [
+        "SELECT\n",
+        "  id_alerta,\n",
+        "  id_pozo,\n",
+        "  fecha_hora,\n",
+        "  presion_psi,\n",
+        "  caudal_bpd,\n",
+        "  tipo_anomalia,\n",
+        "  nivel_riesgo,\n",
+        "  requiere_parada_planta\n",
+        "FROM\n",
+        "  workspace.control_produccion_pozos.vw_alertas_criticas_dashboard"
+      ],
+      "columns": [
+        {
+          "displayName": "paradas_requeridas",
+          "expression": "SUM(CAST(`requiere_parada_planta` AS INT))"
+        }
+      ]
+    },
+    {
+      "name": "calidad_datos",
+      "displayName": "Calidad de Datos - Sensores",
+      "queryLines": [
+        "SELECT\n",
+        "  estado_sensor,\n",
+        "  cantidad_registros,\n",
+        "  porcentaje_del_total\n",
+        "FROM\n",
+        "  workspace.control_produccion_pozos.vw_calidad_datos_dashboard"
+      ]
+    },
+    {
+      "name": "tendencia_presion",
+      "displayName": "Tendencia de Presión - Pozos",
+      "queryLines": [
+        "SELECT\n",
+        "  id_pozo,\n",
+        "  fecha_hora,\n",
+        "  presion_psi,\n",
+        "  caudal_bpd\n",
+        "FROM\n",
+        "  workspace.control_produccion_pozos.vw_tendencia_presion_dashboard"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "1b0c5ee2",
+      "displayName": "Calidad datos",
+      "layout": [
+        {
+          "widget": {
+            "name": "counter_total_registros",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "calidad_datos",
+                  "fields": [
+                    {
+                      "name": "sum(cantidad_registros)",
+                      "expression": "SUM(`cantidad_registros`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Registros Monitoreados"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(cantidad_registros)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_estados_detectados",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "calidad_datos",
+                  "fields": [
+                    {
+                      "name": "countdistinct(estado_sensor)",
+                      "expression": "COUNT(DISTINCT `estado_sensor`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Estados de Sensor Detectados"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(estado_sensor)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_max_cobertura",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "calidad_datos",
+                  "fields": [
+                    {
+                      "name": "max(porcentaje_del_total)",
+                      "expression": "MAX(`porcentaje_del_total`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "% Máximo de Cobertura"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "max(porcentaje_del_total)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_cantidad_estado",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "calidad_datos",
+                  "fields": [
+                    {
+                      "name": "estado_sensor",
+                      "expression": "`estado_sensor`"
+                    },
+                    {
+                      "name": "sum(cantidad_registros)",
+                      "expression": "SUM(`cantidad_registros`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Cantidad de Registros por Estado"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "estado_sensor",
+                  "displayName": "estado_sensor",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(cantidad_registros)",
+                  "displayName": "cantidad_registros",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "estado_sensor",
+                  "displayName": "estado_sensor",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "pie_distribucion_estado",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "calidad_datos",
+                  "fields": [
+                    {
+                      "name": "sum(cantidad_registros)",
+                      "expression": "SUM(`cantidad_registros`)"
+                    },
+                    {
+                      "name": "estado_sensor",
+                      "expression": "`estado_sensor`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Distribución por Estado de Sensor"
+              },
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "sum(cantidad_registros)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "cantidad_registros"
+                },
+                "color": {
+                  "fieldName": "estado_sensor",
+                  "displayName": "estado_sensor",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 3,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "tabla_calidad",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "calidad_datos",
+                  "fields": [
+                    {
+                      "name": "estado_sensor",
+                      "expression": "`estado_sensor`"
+                    },
+                    {
+                      "name": "cantidad_registros",
+                      "expression": "`cantidad_registros`"
+                    },
+                    {
+                      "name": "porcentaje_del_total",
+                      "expression": "`porcentaje_del_total`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Detalle de Calidad de Datos"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "estado_sensor"
+                  },
+                  {
+                    "fieldName": "cantidad_registros"
+                  },
+                  {
+                    "fieldName": "porcentaje_del_total"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "a56e4c45",
+      "displayName": "Alertas Críticas",
+      "layout": [
+        {
+          "widget": {
+            "name": "counter_total_alertas",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "alertas_criticas",
+                  "fields": [
+                    {
+                      "name": "count(id_alerta)",
+                      "expression": "COUNT(`id_alerta`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Alertas Críticas"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(id_alerta)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_pozos_afectados",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "alertas_criticas",
+                  "fields": [
+                    {
+                      "name": "countdistinct(id_pozo)",
+                      "expression": "COUNT(DISTINCT `id_pozo`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Pozos Únicos Afectados"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(id_pozo)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_riesgo",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "alertas_criticas",
+                  "fields": [
+                    {
+                      "name": "nivel_riesgo",
+                      "expression": "`nivel_riesgo`"
+                    },
+                    {
+                      "name": "count(id_alerta)",
+                      "expression": "COUNT(`id_alerta`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Alertas por Nivel de Riesgo"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "nivel_riesgo",
+                  "displayName": "nivel_riesgo",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "count(id_alerta)",
+                  "displayName": "id_alerta",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "nivel_riesgo",
+                  "displayName": "nivel_riesgo",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "pie_anomalia",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "alertas_criticas",
+                  "fields": [
+                    {
+                      "name": "count(id_alerta)",
+                      "expression": "COUNT(`id_alerta`)"
+                    },
+                    {
+                      "name": "tipo_anomalia",
+                      "expression": "`tipo_anomalia`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Distribución por Tipo de Anomalía"
+              },
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "count(id_alerta)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "id_alerta"
+                },
+                "color": {
+                  "fieldName": "tipo_anomalia",
+                  "displayName": "tipo_anomalia",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 3,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_top_pozos",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "alertas_criticas",
+                  "fields": [
+                    {
+                      "name": "id_pozo",
+                      "expression": "`id_pozo`"
+                    },
+                    {
+                      "name": "count(id_alerta)",
+                      "expression": "COUNT(`id_alerta`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Pozos con Más Alertas"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "id_pozo",
+                  "displayName": "id_pozo",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "count(id_alerta)",
+                  "displayName": "id_alerta",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "id_pozo",
+                  "displayName": "id_pozo",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 10,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "tabla_detalle",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "alertas_criticas",
+                  "fields": [
+                    {
+                      "name": "id_alerta",
+                      "expression": "`id_alerta`"
+                    },
+                    {
+                      "name": "id_pozo",
+                      "expression": "`id_pozo`"
+                    },
+                    {
+                      "name": "fecha_hora",
+                      "expression": "`fecha_hora`"
+                    },
+                    {
+                      "name": "presion_psi",
+                      "expression": "`presion_psi`"
+                    },
+                    {
+                      "name": "caudal_bpd",
+                      "expression": "`caudal_bpd`"
+                    },
+                    {
+                      "name": "tipo_anomalia",
+                      "expression": "`tipo_anomalia`"
+                    },
+                    {
+                      "name": "nivel_riesgo",
+                      "expression": "`nivel_riesgo`"
+                    },
+                    {
+                      "name": "requiere_parada_planta",
+                      "expression": "`requiere_parada_planta`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Detalle de Alertas Críticas"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "id_alerta"
+                  },
+                  {
+                    "fieldName": "id_pozo"
+                  },
+                  {
+                    "fieldName": "fecha_hora"
+                  },
+                  {
+                    "fieldName": "presion_psi"
+                  },
+                  {
+                    "fieldName": "caudal_bpd"
+                  },
+                  {
+                    "fieldName": "tipo_anomalia"
+                  },
+                  {
+                    "fieldName": "nivel_riesgo"
+                  },
+                  {
+                    "fieldName": "requiere_parada_planta"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 8,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_paradas_v2",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "alertas_criticas",
+                  "fields": [
+                    {
+                      "name": "measure(paradas_requeridas)",
+                      "expression": "MEASURE(`paradas_requeridas`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Paradas de Planta Requeridas"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(paradas_requeridas)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 3
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "566abb01",
+      "displayName": "tendencia presion",
+      "layout": [
+        {
+          "widget": {
+            "name": "counter_presion_prom",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "tendencia_presion",
+                  "fields": [
+                    {
+                      "name": "avg(presion_psi)",
+                      "expression": "AVG(`presion_psi`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Presión Promedio (PSI)"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(presion_psi)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_caudal_prom",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "tendencia_presion",
+                  "fields": [
+                    {
+                      "name": "avg(caudal_bpd)",
+                      "expression": "AVG(`caudal_bpd`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Caudal Promedio (BPD)"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(caudal_bpd)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_presion_max",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "tendencia_presion",
+                  "fields": [
+                    {
+                      "name": "max(presion_psi)",
+                      "expression": "MAX(`presion_psi`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Presión Máxima (PSI)"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "max(presion_psi)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "tabla_tendencia",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "tendencia_presion",
+                  "fields": [
+                    {
+                      "name": "id_pozo",
+                      "expression": "`id_pozo`"
+                    },
+                    {
+                      "name": "fecha_hora",
+                      "expression": "`fecha_hora`"
+                    },
+                    {
+                      "name": "presion_psi",
+                      "expression": "`presion_psi`"
+                    },
+                    {
+                      "name": "caudal_bpd",
+                      "expression": "`caudal_bpd`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Detalle de Tendencias"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "id_pozo"
+                  },
+                  {
+                    "fieldName": "fecha_hora"
+                  },
+                  {
+                    "fieldName": "presion_psi"
+                  },
+                  {
+                    "fieldName": "caudal_bpd"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 12,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "line_caudal_tiempo",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "tendencia_presion",
+                  "fields": [
+                    {
+                      "name": "id_pozo",
+                      "expression": "`id_pozo`"
+                    },
+                    {
+                      "name": "minutely(fecha_hora)",
+                      "expression": "DATE_TRUNC(\"MINUTE\", `fecha_hora`)"
+                    },
+                    {
+                      "name": "avg(caudal_bpd)",
+                      "expression": "AVG(`caudal_bpd`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Tendencia de Caudal en el Tiempo",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "minutely(fecha_hora)",
+                  "displayName": "Minuto",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "avg(caudal_bpd)",
+                  "displayName": "Caudal (BPD)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "id_pozo",
+                  "displayName": "Pozo",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
