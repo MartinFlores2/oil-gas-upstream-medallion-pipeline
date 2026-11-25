@@ -1,6 +1,8 @@
-# Oil & Gas Well Telemetry: Medallion Pipeline on Databricks
+Oil & Gas Well Telemetry: Medallion Pipeline on Databricks
 
 A batch data pipeline built on Databricks (Auto Loader, Delta Lake, Unity Catalog). It ingests simulated well telemetry, cleans it, quarantines bad records, and produces a daily summary per well.
+
+Pipeline diagram
 
 What this project is (and is not)
 Synthetic data. A simulator (random.seed(42), so it is reproducible) writes JSON files with pressure and flow readings for 5 wells over 14 days: 70 files, 144 readings per file, 10,080 readings in total.
@@ -38,6 +40,20 @@ Re-running any step does not duplicate or change data:
 Bronze: Auto Loader keeps a checkpoint, so each file is ingested once.
 Silver (clean and quarantine): MERGE INTO on the natural key. The clean table uses ROW_NUMBER() to keep the latest record if the same reading arrives twice. The second run reports 0 inserted and 0 updated rows.
 Gold: INSERT OVERWRITE. Gold is derived from Silver, so it is recomputed in full and always gives the same result. For a much larger table, I would overwrite only the affected partitions or use MERGE.
+Orchestration
+
+A Databricks Job (oil_gas_medallion_pipeline) runs the pipeline end to end as four tasks in sequence:
+
+bronze_ingest -> silver_transform -> gold_summary -> pipeline_tests
+
+Job run
+
+Dependencies: each task runs only if the previous one succeeded ("All succeeded"). If a task fails, the tasks after it are skipped and the run is marked as failed. Tasks that already finished are not rolled back, which is safe here because every step is idempotent.
+Retries: bronze_ingest retries up to 2 times (1 minute between attempts), because ingestion is the step most likely to fail for temporary reasons and it can be repeated safely. The other tasks do not retry.
+Trigger: file arrival on /Volumes/workspace/oil_gas_bronze/landing/telemetry/. The job runs when new files land, instead of on a fixed schedule, so there are no empty runs and new data is processed soon after it arrives. The trigger watches only the telemetry folder, not the whole volume, because the Auto Loader checkpoint lives in landing/_checkpoints.
+Tests as the last task: if an assertion in pipeline_tests fails, the whole run fails.
+Verified: two manual runs in a row both succeeded, and the tests passed both times, so re-running the job does not duplicate data.
+Not included in the job: 00_setup, 01_simulator and 05_views. They are run once (the view is created with CREATE OR REPLACE VIEW and stays in place).
 Tests
 
 07_Tests/01_pipeline_tests runs five assertions:
@@ -52,7 +68,8 @@ The data is synthetic. The LOW_PRESSURE threshold (1,000 psi) was chosen from th
 The status is daily. It shows which day a well dropped, not at what time.
 The simulator only injects defects into pressure. The rules missing_well_id, invalid_timestamp and invalid_flow match no rows in this dataset, and they have no dedicated test yet.
 The reconciliation test assumes Bronze has no duplicate readings. If duplicates arrive, Silver removes them and the test would fail even though the pipeline is correct.
-No scheduled job yet. The notebooks are run manually.
+The file arrival trigger is configured, but it has not been tested with new files yet. All runs so far were started manually.
+The job has no failure notifications configured.
 How to run
 
 Run the notebooks in this order (Databricks serverless). In the Silver transform notebook, run the cells from top to bottom: the temporary views only exist in the current session.
@@ -63,4 +80,6 @@ Run the notebooks in this order (Databricks serverless). In the Silver transform
 03_silver_transform: quarantine and clean-table merges.
 04_gold_summary: builds the daily summary.
 05_views: creates the status view.
-01_pipeline_tests: runs the assertions.
+07_Tests/01_pipeline_tests: runs the assertions.
+
+After the first setup, steps 3, 4, 5 and 7 can also run together through the Databricks Job described above.
