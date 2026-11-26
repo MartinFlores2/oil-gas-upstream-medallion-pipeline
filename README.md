@@ -11,7 +11,7 @@ Low-pressure days flagged by the Gold view: WELL_03 and WELL_05, 1 day each. The
 Idempotent reruns: the second run of the Silver merge reports 0 inserted and 0 updated rows, and two consecutive job runs both passed all tests.
 
 Pipeline diagram
-(job-run.png.png)
+<img width="1361" height="887" alt="job-run png" src="https://github.com/user-attachments/assets/87af32dc-c3b3-4ff9-b5c3-273d7823cfec" />
 
 What this project is (and is not)
 Synthetic data. A simulator (random.seed(42), so it is reproducible) writes JSON files with pressure and flow readings for 5 wells over 14 days: 70 files, 144 readings per file, 10,080 readings in total.
