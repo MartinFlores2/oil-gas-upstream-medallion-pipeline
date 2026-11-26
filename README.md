@@ -6,9 +6,12 @@ A batch data pipeline built on Databricks (Auto Loader, Delta Lake, Unity Catalo
 
 Results (synthetic data)
 896 of 10,080 readings (8.9%) were rejected and sent to quarantine: 595 invalid_pressure and 301 negative_pressure. No row was lost: 9,184 clean + 896 quarantined = 10,080 in Bronze.
-Effect of cleaning: the average pressure over the raw readings (with the -999.0 placeholders included) is TODO_RAW psi; over the clean Silver table it is TODO_CLEAN psi. Without the quarantine step, the daily averages would be wrong by that difference.
-Low-pressure days flagged by the Gold view: WELL_03 and WELL_05, TODO_CONFIRM day(s) each (to confirm with the query in 05_views). These wells carry a pressure-drop scenario injected by the simulator, so this is a check that the pipeline surfaces a known event, not a discovery.
+Effect of cleaning: the average pressure over the Bronze readings is 1,117.8 psi (computed with TRY_CAST, so empty and text values are ignored, but the -999.0 placeholders are still counted). Over the clean Silver table it is 1,187.2 psi. Without the quarantine step, the average would be understated by 69.4 psi (about 5.8%).
+Low-pressure days flagged by the Gold view: WELL_03 and WELL_05, 1 day each. These wells carry a pressure-drop scenario injected by the simulator, so this is a check that the pipeline surfaces a known event, not a discovery.
 Idempotent reruns: the second run of the Silver merge reports 0 inserted and 0 updated rows, and two consecutive job runs both passed all tests.
+
+Pipeline diagram
+![Pipeline diagram](docs/pipeline_diagram.png)
 
 What this project is (and is not)
 Synthetic data. A simulator (random.seed(42), so it is reproducible) writes JSON files with pressure and flow readings for 5 wells over 14 days: 70 files, 144 readings per file, 10,080 readings in total.
@@ -42,7 +45,9 @@ Idempotency
 Re-running any step does not duplicate or change data:
 
 Bronze: Auto Loader keeps a checkpoint, so each file is ingested once.
-Silver (clean and quarantine): MERGE INTO on the natural key (TODO_KEY: write the exact key columns from 03_silver_transform). The clean table uses ROW_NUMBER() to keep the latest record if the same reading arrives twice. The second run reports 0 inserted and 0 updated rows.
+Silver clean: MERGE INTO on (well_id, reading_ts). A ROW_NUMBER() over that key (ordered by ingested_at descending) keeps only the latest record if the same reading arrives twice. Matched rows are updated only if pressure or flow actually changed.
+Silver quarantine: MERGE INTO on (source_file, well_id, sensor_timestamp), insert-only. It uses null-safe equality (<=>) because rejected rows can have a NULL well_id or timestamp. The key includes source_file, so the same bad reading arriving in two different files is quarantined twice.
+The second run of both merges reports 0 inserted and 0 updated rows.
 Gold: INSERT OVERWRITE. Gold is derived from Silver, so it is recomputed in full and always gives the same result. For a much larger table, I would overwrite only the affected partitions or use MERGE.
 Orchestration
 
@@ -85,4 +90,3 @@ Run the notebooks in this order (Databricks serverless). In the Silver transform
 07_Tests/01_pipeline_tests: runs the assertions.
 
 After the first setup, steps 3, 4, 5 and 7 can also run together through the Databricks Job described above.
-
