@@ -1,8 +1,14 @@
 Oil & Gas Well Telemetry: Medallion Pipeline on Databricks
 
-A batch data pipeline built on Databricks (Auto Loader, Delta Lake, Unity Catalog). It ingests simulated well telemetry, cleans it, quarantines bad records, and produces a daily summary per well.
+Business question. An operations team needs to know, every day, which wells fell below normal pressure, and needs to trust the numbers. Raw telemetry arrives with defects (about 9% of readings), so averages computed over raw data are wrong. This pipeline ingests the telemetry, cleans it, keeps every rejected row together with the reason, and produces a daily summary per well.
 
-Pipeline diagram
+A batch data pipeline built on Databricks (Auto Loader, Delta Lake, Unity Catalog). All data is simulated.
+
+Results (synthetic data)
+896 of 10,080 readings (8.9%) were rejected and sent to quarantine: 595 invalid_pressure and 301 negative_pressure. No row was lost: 9,184 clean + 896 quarantined = 10,080 in Bronze.
+Effect of cleaning: the average pressure over the raw readings (with the -999.0 placeholders included) is TODO_RAW psi; over the clean Silver table it is TODO_CLEAN psi. Without the quarantine step, the daily averages would be wrong by that difference.
+Low-pressure days flagged by the Gold view: WELL_03 and WELL_05, TODO_CONFIRM day(s) each (to confirm with the query in 05_views). These wells carry a pressure-drop scenario injected by the simulator, so this is a check that the pipeline surfaces a known event, not a discovery.
+Idempotent reruns: the second run of the Silver merge reports 0 inserted and 0 updated rows, and two consecutive job runs both passed all tests.
 
 What this project is (and is not)
 Synthetic data. A simulator (random.seed(42), so it is reproducible) writes JSON files with pressure and flow readings for 5 wells over 14 days: 70 files, 144 readings per file, 10,080 readings in total.
@@ -25,8 +31,6 @@ Bronze keeps everything as text, so no row is lost at ingestion. Silver converts
 
 missing_well_id, invalid_timestamp, invalid_pressure, negative_pressure, invalid_flow
 
-Result on the generated data:
-
 Check	Value
 Bronze rows	10,080
 Silver clean rows	9,184
@@ -38,15 +42,13 @@ Idempotency
 Re-running any step does not duplicate or change data:
 
 Bronze: Auto Loader keeps a checkpoint, so each file is ingested once.
-Silver (clean and quarantine): MERGE INTO on the natural key. The clean table uses ROW_NUMBER() to keep the latest record if the same reading arrives twice. The second run reports 0 inserted and 0 updated rows.
+Silver (clean and quarantine): MERGE INTO on the natural key (TODO_KEY: write the exact key columns from 03_silver_transform). The clean table uses ROW_NUMBER() to keep the latest record if the same reading arrives twice. The second run reports 0 inserted and 0 updated rows.
 Gold: INSERT OVERWRITE. Gold is derived from Silver, so it is recomputed in full and always gives the same result. For a much larger table, I would overwrite only the affected partitions or use MERGE.
 Orchestration
 
 A Databricks Job (oil_gas_medallion_pipeline) runs the pipeline end to end as four tasks in sequence:
 
 bronze_ingest -> silver_transform -> gold_summary -> pipeline_tests
-
-Job run
 
 Dependencies: each task runs only if the previous one succeeded ("All succeeded"). If a task fails, the tasks after it are skipped and the run is marked as failed. Tasks that already finished are not rolled back, which is safe here because every step is idempotent.
 Retries: bronze_ingest retries up to 2 times (1 minute between attempts), because ingestion is the step most likely to fail for temporary reasons and it can be repeated safely. The other tasks do not retry.
@@ -83,3 +85,4 @@ Run the notebooks in this order (Databricks serverless). In the Silver transform
 07_Tests/01_pipeline_tests: runs the assertions.
 
 After the first setup, steps 3, 4, 5 and 7 can also run together through the Databricks Job described above.
+
